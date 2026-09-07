@@ -16,7 +16,7 @@ public class Advertisement : BaseEntity
     public Seller Seller { get; set; }
     
     public bool IsForever { get; set; }
-    public bool IsPostmat { get; set; }
+    public bool IsPostamat { get; set; }
     
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
@@ -24,7 +24,8 @@ public class Advertisement : BaseEntity
     public string Description { get; set; }
     
     public string City { get; set; }
-    public string Address { get; set; }
+    public string HouseNumber { get; set; } // Вместо NumHome
+    public string Street { get; set; }
     
     public bool IsActive { get; set; } 
     

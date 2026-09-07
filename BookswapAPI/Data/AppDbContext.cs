@@ -12,7 +12,6 @@ public class AppDbContext : DbContext
     public DbSet<Seller> Sellers => Set<Seller>();
     public DbSet<Advertisement> Advertisements => Set<Advertisement>();
     public DbSet<FavoriteAdvertisement> FavoriteAdvertisements => Set<FavoriteAdvertisement>();
-    public DbSet<Like> Likes => Set<Like>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -66,7 +65,7 @@ public class AppDbContext : DbContext
             entity.Property(x => x.Title).HasMaxLength(200).IsRequired();
             entity.Property(x => x.Description).HasMaxLength(2000);
             entity.Property(x => x.City).HasMaxLength(100);
-            entity.Property(x => x.Address).HasMaxLength(300);
+            entity.Property(x => x.Street).HasMaxLength(300);
             entity.HasIndex(x => new { x.City, x.IsActive });
             entity.HasOne(x => x.Book)
                 .WithMany()
@@ -91,19 +90,6 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.AdvertisementId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
-
-        modelBuilder.Entity<Like>(entity =>
-        {
-            entity.HasKey(x => x.Id);
-            entity.HasIndex(x => new { x.SellerId, x.AdvertisementId }).IsUnique();
-            entity.HasOne(x => x.Seller)
-                .WithMany()
-                .HasForeignKey(x => x.SellerId)
-                .OnDelete(DeleteBehavior.Cascade);
-            entity.HasOne(x => x.Advertisement)
-                .WithMany()
-                .HasForeignKey(x => x.AdvertisementId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
+        
     }
 }
