@@ -11,7 +11,7 @@ public class Seller : BaseEntity
     public double Rating { get; set; }
     public string Image { get; set; }
     
-    public int UserId { get; set; }
+    public Guid UserId { get; set; }
     [ForeignKey(nameof(UserId))]
     public User User { get; set; }
         

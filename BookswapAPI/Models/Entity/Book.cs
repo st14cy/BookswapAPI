@@ -10,6 +10,6 @@ public class Book : BaseEntity
     public string Author { get; set; }
     
     [Required]
-    public int GenreId { get; set; }
+    public Guid GenreId { get; set; }
     public Genre Genre { get; set; }
 }

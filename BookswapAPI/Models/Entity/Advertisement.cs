@@ -9,10 +9,10 @@ public class Advertisement : BaseEntity
     public string Title { get; set; }
     
     [Required]
-    public int BookId { get; set; }
+    public Guid BookId { get; set; }
     public Book Book { get; set; }
     [Required]
-    public int SellerId { get; set; }
+    public Guid SellerId { get; set; }
     public Seller Seller { get; set; }
     
     public bool IsForever { get; set; }
