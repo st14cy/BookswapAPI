@@ -26,10 +26,14 @@ public class AuthService : IAuthService
         _config = config;
     }
 
-    public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto)
+    public async Task<AuthResponseDto> RegisterAsync(
+        RegisterDto dto, 
+        CancellationToken cancellationToken = default)
     {
         var existingUser = await _context.Users
-            .FirstOrDefaultAsync(u => u.Login == dto.Login || u.Email == dto.Email);
+            .FirstOrDefaultAsync(
+                u => u.Login == dto.Login || u.Email == dto.Email, 
+                cancellationToken); 
 
         if (existingUser != null)
         {
@@ -50,11 +54,10 @@ public class AuthService : IAuthService
             CreatedAt = DateTime.UtcNow,
             IsDeleted = false
         };
-
-        Seller? seller = null;
+        
         if (!string.IsNullOrEmpty(dto.FirstName))
         {
-            seller = new Seller
+            var seller = new Seller
             {
                 Id = Guid.NewGuid(),
                 UserId = user.Id,
@@ -66,51 +69,70 @@ public class AuthService : IAuthService
                 IsDeleted = false
             };
             seller.User = user;
-            await _context.Sellers.AddAsync(seller);
+            await _context.Sellers.AddAsync(seller, cancellationToken); 
         }
 
-        await _context.Users.AddAsync(user);
-        await _context.SaveChangesAsync();
+        await _context.Users.AddAsync(user, cancellationToken);  
+        await _context.SaveChangesAsync(cancellationToken); 
 
         _logger.LogInformation($"Пользователь {user.Login} успешно зарегистрирован с ID {user.Id}");
-
-        // 6. Генерируем токены
-        return await GenerateAuthResponseAsync(user);
+        
+        return await GenerateAuthResponseAsync(user, cancellationToken);
     }
 
-    public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
+    public async Task<AuthResponseDto> LoginAsync(
+        LoginDto dto, 
+        CancellationToken cancellationToken = default)
     {
         var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Login == dto.Login && !u.IsDeleted);
+            .FirstOrDefaultAsync(
+                u => u.Login == dto.Login && !u.IsDeleted, 
+                cancellationToken); 
 
         if (user == null)
         {
             _logger.LogWarning($"Попытка входа не удалась: пользователь '{dto.Login}' не найден");
             throw new UnauthorizedAccessException("Неверный логин или пароль");
         }
-
+        
         if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
         {
             _logger.LogWarning($"Попытка входа не удалась: неверный пароль для пользователя '{dto.Login}'");
             throw new UnauthorizedAccessException("Неверный логин или пароль");
         }
+        
+        if (user.IsDeleted)
+        {
+            _logger.LogWarning($"Попытка входа не удалась: пользователь '{dto.Login}' удален");
+            throw new UnauthorizedAccessException("Аккаунт удален. Обратитесь к администратору");
+        }
+        
+        await _context.SaveChangesAsync(cancellationToken); 
         _logger.LogInformation($"Пользователь {user.Login} успешно вошел в систему");
-
-        return await GenerateAuthResponseAsync(user);
+        return await GenerateAuthResponseAsync(user, cancellationToken);
     }
 
-    public async Task<AuthResponseDto> RefreshTokenAsync(string refreshToken)
+    public async Task<AuthResponseDto> RefreshTokenAsync(
+        string refreshToken, 
+        CancellationToken cancellationToken = default)
     {
-        // 1. Ищем пользователя с таким Refresh Token
+        if (string.IsNullOrEmpty(refreshToken))
+        {
+            _logger.LogWarning("Попытка обновления токена не удалась: токен не предоставлен");
+            throw new UnauthorizedAccessException("Refresh токен не предоставлен");
+        }
+        
         var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.RefreshToken == refreshToken && !u.IsDeleted);
+            .FirstOrDefaultAsync(
+                u => u.RefreshToken == refreshToken && !u.IsDeleted, 
+                cancellationToken);
 
         if (user == null)
         {
             _logger.LogWarning($"Попытка обновления токена не удалась: токен не найден");
-            throw new UnauthorizedAccessException("Неверный refresh токен");
+            throw new UnauthorizedAccessException("Неверный или истекший refresh токен");
         }
-
+        
         var (isValid, _) = _jwtService.ValidateRefreshToken(user, refreshToken);
         if (!isValid)
         {
@@ -119,39 +141,57 @@ public class AuthService : IAuthService
         }
 
         _logger.LogInformation($"Refresh токен обновлен для пользователя {user.Login}");
-        return await GenerateAuthResponseAsync(user);
+        return await GenerateAuthResponseAsync(user, cancellationToken);  
     }
 
-    public async Task<bool> LogoutAsync(Guid userId)
+    public async Task<bool> LogoutAsync(
+        Guid userId, 
+        CancellationToken cancellationToken = default)
     {
-        var user = await _context.Users.FindAsync(userId);
+        var user = await _context.Users
+            .FirstOrDefaultAsync(
+                u => u.Id == userId && !u.IsDeleted, 
+                cancellationToken); 
         if (user == null)
+        {
+            _logger.LogWarning($"Попытка выхода не удалась: пользователь с ID {userId} не найден");
             return false;
-
+        }
+        
         user.RefreshToken = null;
         user.RefreshTokenExpiry = null;
-        await _context.SaveChangesAsync();
-
+        await _context.SaveChangesAsync(cancellationToken); 
+        
         _logger.LogInformation($"Пользователь {user.Login} вышел из системы");
         return true;
     }
 
-    public async Task<UserInfoDto> GetUserInfoAsync(Guid userId)
+    public async Task<UserInfoDto> GetUserInfoAsync(
+        Guid userId, 
+        CancellationToken cancellationToken = default)
     {
         var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Id == userId && !u.IsDeleted);
+            .FirstOrDefaultAsync(
+                u => u.Id == userId && !u.IsDeleted, 
+                cancellationToken);  
 
         if (user == null)
+        {
+            _logger.LogWarning($"Запрос информации не удалась: пользователь с ID {userId} не найден");
             throw new KeyNotFoundException($"Пользователь с ID {userId} не найден");
-
+        }
+        
         var seller = await _context.Sellers
             .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.UserId == user.Id && !s.IsDeleted);
+            .FirstOrDefaultAsync(
+                s => s.UserId == user.Id && !s.IsDeleted, 
+                cancellationToken);  // <-- Добавлен CancellationToken
 
         return new UserInfoDto
         {
             Id = user.Id,
             Login = user.Login,
+            Email = user.Email,
             FirstName = seller?.Name,
             LastName = seller?.Surname,
             IsActive = !user.IsDeleted,
@@ -159,25 +199,31 @@ public class AuthService : IAuthService
         };
     }
 
-    // ====== Вспомогательные методы ======
+  
 
-    private async Task<AuthResponseDto> GenerateAuthResponseAsync(User user)
+    private async Task<AuthResponseDto> GenerateAuthResponseAsync(
+        User user, 
+        CancellationToken cancellationToken = default)
     {
+  
         var accessToken = _jwtService.GenerateAccessToken(user);
 
+  
         var refreshToken = _jwtService.GenerateRefreshToken();
-
+        
         user.RefreshToken = refreshToken;
         user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(
             int.Parse(_config["Jwt:RefreshTokenExpiryDays"] ?? "7")
         );
-        await _context.SaveChangesAsync();
-
+        await _context.SaveChangesAsync(cancellationToken); 
+        
         var expiresInMinutes = int.Parse(_config["Jwt:AccessTokenExpiryMinutes"] ?? "15");
         var seller = await _context.Sellers
             .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.UserId == user.Id && !s.IsDeleted);
-
+            .FirstOrDefaultAsync(
+                s => s.UserId == user.Id && !s.IsDeleted, 
+                cancellationToken); 
+        
         return new AuthResponseDto
         {
             AccessToken = accessToken,
@@ -187,6 +233,7 @@ public class AuthService : IAuthService
             {
                 Id = user.Id,
                 Login = user.Login,
+                Email = user.Email,
                 FirstName = seller?.Name,
                 LastName = seller?.Surname,
                 IsActive = !user.IsDeleted,
