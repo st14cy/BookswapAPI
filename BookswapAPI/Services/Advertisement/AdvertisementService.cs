@@ -15,18 +15,16 @@ public class AdvertisementService : IAdvertisementService
         try
         {
             var res= await _context.Advertisements
-                .Include(x=>x.Book)
-                    .ThenInclude(b => b.Genre)
                 .Include(x=>x.Seller)
                 .Where(x=>!x.IsDeleted).Select(x=>new AdvertisementInfoDto
                 {
                     Id =  x.Id,
                     Title = x.Title,
                     Description = x.Description,
-                    AuthorName = x.Book.Author,
-                    BookTitle = x.Book.Title,
-                    GenreId=x.Book.GenreId,
-                    GenreName = x.Book.Genre.Name,
+                    AuthorName = x.Author,
+                    BookTitle = x.Title,
+                    GenreId=x.GenreId,
+                    GenreName = x.Genre.Name,
                     IsNew = x.IsNew,
                     IsForever =  x.IsForever,
                     IsPostamat = x.IsPostamat,
@@ -54,8 +52,6 @@ public class AdvertisementService : IAdvertisementService
         cancellationToken.ThrowIfCancellationRequested();
         
         var advertisement = await _context.Advertisements
-            .Include(x => x.Book)
-                .ThenInclude(b => b.Genre)
             .Include(x => x.Seller)
             .Where(x => x.Id == id && !x.IsDeleted)
             .Select(x => new AdvertisementInfoDto
@@ -64,13 +60,11 @@ public class AdvertisementService : IAdvertisementService
                 Title = x.Title,
                 Description = x.Description,
                 
-                BookTitle = x.Book != null ? x.Book.Title : "Неизвестно",
-                AuthorName = x.Book != null ? x.Book.Author : "Неизвестно",
+                BookTitle = x.Title ,
+                AuthorName =x.Author ,
                 
-                GenreId = x.Book != null ? x.Book.GenreId : Guid.Empty,
-                GenreName = x.Book != null && x.Book.Genre != null 
-                    ? x.Book.Genre.Name 
-                    : "Неизвестно",
+                GenreId =x.GenreId,
+                GenreName = x.Genre.Name,
                 IsNew = x.IsNew,
                 IsForever = x.IsForever,
                 IsPostamat = x.IsPostamat,

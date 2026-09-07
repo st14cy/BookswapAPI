@@ -8,7 +8,6 @@ public class AppDbContext : DbContext
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<Genre> Genres => Set<Genre>();
-    public DbSet<Book> Books => Set<Book>();
     public DbSet<Seller> Sellers => Set<Seller>();
     public DbSet<Advertisement> Advertisements => Set<Advertisement>();
     public DbSet<FavoriteAdvertisement> FavoriteAdvertisements => Set<FavoriteAdvertisement>();
@@ -34,17 +33,7 @@ public class AppDbContext : DbContext
             entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
             entity.HasIndex(x => x.Name).IsUnique();
         });
-
-        modelBuilder.Entity<Book>(entity =>
-        {
-            entity.HasKey(x => x.Id);
-            entity.Property(x => x.Title).HasMaxLength(200).IsRequired();
-            entity.Property(x => x.Author).HasMaxLength(200).IsRequired();
-            entity.HasOne(x => x.Genre)
-                .WithMany()
-                .HasForeignKey(x => x.GenreId)
-                .OnDelete(DeleteBehavior.Restrict);
-        });
+        
 
         modelBuilder.Entity<Seller>(entity =>
         {
@@ -67,10 +56,6 @@ public class AppDbContext : DbContext
             entity.Property(x => x.City).HasMaxLength(100);
             entity.Property(x => x.Street).HasMaxLength(300);
             entity.HasIndex(x => new { x.City, x.IsActive });
-            entity.HasOne(x => x.Book)
-                .WithMany()
-                .HasForeignKey(x => x.BookId)
-                .OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.Seller)
                 .WithMany(x => x.Advertisements)
                 .HasForeignKey(x => x.SellerId)
