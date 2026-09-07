@@ -1,6 +1,5 @@
 ﻿using BookswapAPI.Data;
 using BookswapAPI.Models.DTOs.Advertisement;
-using BookswapAPI.Services.Book;
 using Microsoft.EntityFrameworkCore;
 
 namespace BookswapAPI.Services.Advertisement;

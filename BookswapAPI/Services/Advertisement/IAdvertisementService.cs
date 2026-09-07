@@ -1,7 +1,7 @@
 ﻿using BookswapAPI.Models.DTOs.Advertisement;
 using BookswapAPI.Services.Auth;
 
-namespace BookswapAPI.Services.Book;
+namespace BookswapAPI.Services.Advertisement;
 
 public interface IAdvertisementService
 {
