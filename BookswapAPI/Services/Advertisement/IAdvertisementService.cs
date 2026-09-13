@@ -5,7 +5,7 @@ namespace BookswapAPI.Services.Advertisement;
 
 public interface IAdvertisementService
 {
-    Task<IEnumerable<AdvertisementInfoDto>> GeAllAdvertisementAsync(  CancellationToken cancellationToken = default);
+    Task<IEnumerable<AdvertisementInfoDto>> GeAllAdvertisementAsync( CancellationToken cancellationToken = default);
     
     Task<AdvertisementInfoDto> GetAdvertisementByIdAsync(Guid id,  CancellationToken cancellationToken = default);
     Task<AdvertisementInfoDto> CreateAdvertisementAsync(CreateAdvertisementRequestDto request,  CancellationToken cancellationToken = default);

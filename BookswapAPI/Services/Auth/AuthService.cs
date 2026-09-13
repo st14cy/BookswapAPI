@@ -50,7 +50,7 @@ public class AuthService : IAuthService
             Login = dto.Login,
             Email = dto.Email,
             PasswordHash = passwordHash,
-            Role = Roles.user,
+            Role = Roles.User,
             CreatedAt = DateTime.UtcNow,
             IsDeleted = false
         };

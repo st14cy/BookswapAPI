@@ -6,6 +6,7 @@ namespace BookswapAPI.Data;
 
 public class AppDbContext : DbContext
 {
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
     public DbSet<User> Users => Set<User>();
     public DbSet<Genre> Genres => Set<Genre>();
     public DbSet<Seller> Sellers => Set<Seller>();
