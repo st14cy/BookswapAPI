@@ -20,5 +20,12 @@ public class AdvertisementController : ControllerBase
         var advertisement=_advertisementService.GeAllAdvertisementAsync();
         return Ok(await advertisement);
     }
+
+    [HttpGet("getById/{id:guid}")]
+    public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
+    {
+        var get = _advertisementService.GetAdvertisementByIdAsync(id, cancellationToken);
+        return Ok(await get);
+    }
     
 }

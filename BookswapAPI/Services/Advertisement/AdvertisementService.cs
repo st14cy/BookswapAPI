@@ -59,7 +59,7 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
                     Id = x.Id,
                     Title = x.Title,
                     Description = x.Description,
-                    BookTitle = x.Title,
+                    BookTitle = x.TitleBook,
                     AuthorName = x.Author,
                     GenreId = x.GenreId,
                     GenreName = x.Genre.Name,
