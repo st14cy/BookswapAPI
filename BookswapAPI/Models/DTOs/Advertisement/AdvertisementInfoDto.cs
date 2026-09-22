@@ -17,8 +17,5 @@ public class AdvertisementInfoDto
     public string HouseNumber { get; set; } // Вместо NumHome
     public Guid OwnerId { get; set; }
     public string OwnerName { get; set; }
-    
     public DateTime CreatedAt { get; set; }
-    
-
 }
