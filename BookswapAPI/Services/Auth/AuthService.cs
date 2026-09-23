@@ -62,7 +62,6 @@ public class AuthService : IAuthService
                 Id = Guid.NewGuid(),
                 UserId = user.Id,
                 Name = dto.FirstName,
-                Surname = dto.LastName ?? string.Empty,
                 Rating = 0.0,
                 Image = "default.jpg",
                 CreatedAt = user.CreatedAt,
@@ -84,9 +83,12 @@ public class AuthService : IAuthService
         LoginDto dto, 
         CancellationToken cancellationToken = default)
     {
+        // Входить можно как по логину, так и по email (email без учёта регистра)
+        var loginOrEmail = dto.Login.Trim();
+        var emailLower = loginOrEmail.ToLower();
         var user = await _context.Users
             .FirstOrDefaultAsync(
-                u => u.Login == dto.Login && !u.IsDeleted, 
+                u => (u.Login == loginOrEmail || u.Email.ToLower() == emailLower) && !u.IsDeleted, 
                 cancellationToken); 
 
         if (user == null)
