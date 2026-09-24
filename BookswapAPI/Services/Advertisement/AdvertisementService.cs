@@ -32,7 +32,8 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
                     OwnerId = x.SellerId,
                     OwnerName = x.Seller.Name,
                     IsActive = x.IsActive,
-                    CoverUrl = x.CoverUrl
+                    CoverUrl = x.CoverUrl,
+                    LikeCount = x.LikeCount
                 })
                 .ToListAsync(cancellationToken);
             return res;
@@ -75,6 +76,7 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
                     OwnerName = x.Seller != null ? x.Seller.Name : "Неизвестно",
                     IsActive = x.IsActive,
                     CoverUrl = x.CoverUrl,
+                    LikeCount = x.LikeCount,
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -409,6 +411,7 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
                     OwnerName = x.Seller.Name,
                     IsActive = x.IsActive,
                     CoverUrl = x.CoverUrl,
+                    LikeCount = x.LikeCount,
                     CreatedAt = x.CreatedAt
                 })
                 .OrderByDescending(x => x.CreatedAt)
@@ -469,6 +472,7 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
                     OwnerName = x.Seller.Name,
                     IsActive = x.IsActive,
                     CoverUrl = x.CoverUrl,
+                    LikeCount = x.LikeCount,
                     CreatedAt = x.CreatedAt
                 })
                 .OrderByDescending(x => x.CreatedAt)

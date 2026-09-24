@@ -22,4 +22,6 @@ public class AdvertisementInfoDto
     public bool IsActive { get; set; }
     /// <summary>Ссылка на обложку книги, null — обложки нет</summary>
     public string? CoverUrl { get; set; }
+    /// <summary>Сколько пользователей добавили объявление в избранное</summary>
+    public int LikeCount { get; set; }
 }
