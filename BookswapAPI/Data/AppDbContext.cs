@@ -40,7 +40,6 @@ public class AppDbContext : DbContext
         {
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
-            entity.Property(x => x.Surname).HasMaxLength(100);
             entity.Property(x => x.Image).HasMaxLength(500);
             entity.HasIndex(x => x.UserId).IsUnique();
             entity.HasOne(x => x.User)

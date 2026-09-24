@@ -60,7 +60,6 @@ namespace BookswapAPI.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    Surname = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     Rating = table.Column<double>(type: "double precision", nullable: false),
                     Image = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),

@@ -75,7 +75,6 @@ public static class DbSeeder
             new() {
                 Id = Guid.NewGuid(),
                 Name = "Алиса",
-                Surname = "Иванова",
                 Rating = 4.8,
                 Image = "https://i.pravatar.cc/150?img=1",
                 UserId = users[0].Id,
@@ -84,7 +83,6 @@ public static class DbSeeder
             new() {
                 Id = Guid.NewGuid(),
                 Name = "Борис",
-                Surname = "Петров",
                 Rating = 4.5,
                 Image = "https://i.pravatar.cc/150?img=2",
                 UserId = users[1].Id,
@@ -93,7 +91,6 @@ public static class DbSeeder
             new() {
                 Id = Guid.NewGuid(),
                 Name = "Карина",
-                Surname = "Сидорова",
                 Rating = 4.9,
                 Image = "https://i.pravatar.cc/150?img=3",
                 UserId = users[2].Id,

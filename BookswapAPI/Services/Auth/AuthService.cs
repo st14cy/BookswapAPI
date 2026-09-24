@@ -55,13 +55,13 @@ public class AuthService : IAuthService
             IsDeleted = false
         };
         
-        if (!string.IsNullOrEmpty(dto.FirstName))
+        if (!string.IsNullOrWhiteSpace(dto.FirstName))
         {
             var seller = new Seller
             {
                 Id = Guid.NewGuid(),
                 UserId = user.Id,
-                Name = dto.FirstName,
+                Name = dto.FirstName.Trim(),
                 Rating = 0.0,
                 Image = "default.jpg",
                 CreatedAt = user.CreatedAt,
@@ -187,7 +187,7 @@ public class AuthService : IAuthService
             .AsNoTracking()
             .FirstOrDefaultAsync(
                 s => s.UserId == user.Id && !s.IsDeleted, 
-                cancellationToken);  // <-- Добавлен CancellationToken
+                cancellationToken);  
 
         return new UserInfoDto
         {
@@ -195,7 +195,6 @@ public class AuthService : IAuthService
             Login = user.Login,
             Email = user.Email,
             FirstName = seller?.Name,
-            LastName = seller?.Surname,
             IsActive = !user.IsDeleted,
             Role = user.Role
         };
@@ -237,7 +236,6 @@ public class AuthService : IAuthService
                 Login = user.Login,
                 Email = user.Email,
                 FirstName = seller?.Name,
-                LastName = seller?.Surname,
                 IsActive = !user.IsDeleted,
                 Role = user.Role
             }
