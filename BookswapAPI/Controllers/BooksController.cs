@@ -35,6 +35,28 @@ public class BooksController : ControllerBase
         });
     }
 
+    /// <summary>
+    /// Подсказки для автозаполнения: type=title (книги) или type=author (авторы).
+    /// Для type=title можно передать author, чтобы искать книги только этого автора.
+    /// </summary>
+    [HttpGet("suggest")]
+    public async Task<IActionResult> Suggest(
+        [FromQuery] string q,
+        [FromQuery] string type = "title",
+        [FromQuery] string? author = null,
+        [FromQuery] int limit = 8,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(q) || q.Trim().Length < 2)
+            return Ok(Array.Empty<object>());
+
+        if (type != "title" && type != "author")
+            return BadRequest(new { message = "type должен быть title или author" });
+
+        var suggestions = await _bookService.SuggestAsync(q.Trim(), type, author?.Trim(), limit, cancellationToken);
+        return Ok(suggestions);
+    }
+
     [HttpGet("isbn/{isbn}")]
     public async Task<IActionResult> GetBookByIsbn(string isbn)
     {

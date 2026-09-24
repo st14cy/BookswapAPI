@@ -8,7 +8,8 @@ public interface IAdvertisementService
     Task<IEnumerable<AdvertisementInfoDto>> GeAllAdvertisementAsync( CancellationToken cancellationToken = default);
     
     Task<AdvertisementInfoDto> GetAdvertisementByIdAsync(Guid id,  CancellationToken cancellationToken = default);
-    Task<AdvertisementInfoDto> CreateAdvertisementAsync(CreateAdvertisementRequestDto request,  CancellationToken cancellationToken = default);
+    /// <param name="userId">Id авторизованного пользователя (из JWT) — он становится продавцом</param>
+    Task<AdvertisementInfoDto> CreateAdvertisementAsync(Guid userId, CreateAdvertisementRequestDto request,  CancellationToken cancellationToken = default);
     Task<AdvertisementInfoDto> UpdateAdvertisementAsync(Guid id, UpdateAdvertisementRequestDto request,  CancellationToken cancellationToken = default);
     Task<bool> DeleteAdvertisementAsync(Guid id,  CancellationToken cancellationToken = default);
     Task<IEnumerable<AdvertisementInfoDto>> GetAdvertisementByUserAsync(Guid userId,  CancellationToken cancellationToken = default);

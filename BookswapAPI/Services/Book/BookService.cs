@@ -117,6 +117,68 @@ public class BookService : IBookService
         }
     }
 
+    public async Task<List<BookSuggestionDto>> SuggestAsync(
+        string query,
+        string type,
+        string? author = null,
+        int limit = 8,
+        CancellationToken cancellationToken = default)
+    {
+        limit = Math.Clamp(limit, 1, 20);
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+        try
+        {
+            if (string.Equals(type, "author", StringComparison.OrdinalIgnoreCase))
+            {
+                var url = $"search/authors.json?q={Uri.EscapeDataString(query)}&limit={limit}";
+                var json = await _httpClient.GetStringAsync(url, cancellationToken);
+                var data = JsonSerializer.Deserialize<OpenLibraryAuthorsResponse>(json, options);
+
+                return (data?.Docs ?? [])
+                    .Where(a => !string.IsNullOrWhiteSpace(a.Name))
+                    .OrderByDescending(a => a.WorkCount ?? 0)
+                    .DistinctBy(a => a.Name!.Trim().ToLowerInvariant())
+                    .Select(a => new BookSuggestionDto
+                    {
+                        Author = a.Name!.Trim(),
+                        Title = a.TopWork ?? string.Empty
+                    })
+                    .ToList();
+            }
+
+            // Поиск книг по названию; поле fields уменьшает ответ OpenLibrary и ускоряет подсказки
+            var bookUrl = $"search.json?title={Uri.EscapeDataString(query)}" +
+                          (string.IsNullOrWhiteSpace(author) ? "" : $"&author={Uri.EscapeDataString(author)}") +
+                          $"&fields=title,author_name,first_publish_year,cover_i&limit={limit * 2}";
+            var bookJson = await _httpClient.GetStringAsync(bookUrl, cancellationToken);
+            var books = JsonSerializer.Deserialize<OpenLibraryResponse>(bookJson, options);
+
+            return (books?.Docs ?? [])
+                .Where(d => !string.IsNullOrWhiteSpace(d.Title))
+                .Select(d => new BookSuggestionDto
+                {
+                    Title = d.Title.Trim(),
+                    Author = d.AuthorNames?.FirstOrDefault() ?? string.Empty,
+                    Year = d.FirstPublishYear?.ToString(),
+                    CoverUrl = GetCoverUrl(d.CoverId, "S")
+                })
+                .DistinctBy(s => (s.Title.ToLowerInvariant(), s.Author.ToLowerInvariant()))
+                .Take(limit)
+                .ToList();
+        }
+        catch (HttpRequestException)
+        {
+            // OpenLibrary недоступна — просто не показываем подсказки
+            return [];
+        }
+        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            // таймаут запроса к OpenLibrary
+            return [];
+        }
+    }
+
     public async Task<int> GetTotalCountAsync(string query)
     {
         try

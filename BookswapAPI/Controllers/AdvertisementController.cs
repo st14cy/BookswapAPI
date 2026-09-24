@@ -1,6 +1,8 @@
 ﻿using BookswapAPI.Models;
 using BookswapAPI.Models.DTOs.Advertisement;
+using System.Security.Claims;
 using BookswapAPI.Services.Advertisement;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BookswapAPI.Controllers;
@@ -39,12 +41,31 @@ public class AdvertisementController : ControllerBase
     
     
     
+    /// <summary>
+    /// Создание объявления. Владелец — текущий авторизованный пользователь (из JWT).
+    /// </summary>
+    [Authorize]
     [HttpPost("createAdvertisement")]
     public async Task<IActionResult> CreateAdvertisement([FromBody] CreateAdvertisementRequestDto advertisement,
         CancellationToken cancellationToken)
     {
-        var post = _advertisementService.CreateAdvertisementAsync(advertisement, cancellationToken);
-        return Ok(await post);
+        var userId = GetUserIdFromClaims();
+        if (userId == null)
+            return Unauthorized(new { message = "Необходимо войти в аккаунт" });
+
+        try
+        {
+            var post = await _advertisementService.CreateAdvertisementAsync(userId.Value, advertisement, cancellationToken);
+            return Ok(post);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
     }
     
     
@@ -80,5 +101,16 @@ public class AdvertisementController : ControllerBase
         }
         
         
+    }
+
+    /// <summary>
+    /// Id пользователя из JWT (так же, как в AuthController)
+    /// </summary>
+    private Guid? GetUserIdFromClaims()
+    {
+        var value = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                    ?? User.FindFirst("userId")?.Value
+                    ?? User.FindFirst("sub")?.Value;
+        return Guid.TryParse(value, out var id) ? id : null;
     }
 }

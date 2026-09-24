@@ -20,7 +20,10 @@ public class CreateAdvertisementRequestDto
     public string Street { get; set; }
     public string HouseNumber { get; set; }
 
-    [Required(ErrorMessage = "ID владельца обязателен")]
-    public Guid OwnerId { get; set; }      
+    /// <summary>
+    /// Не используется: владелец объявления определяется по JWT-токену авторизованного пользователя.
+    /// Оставлено для совместимости со старыми клиентами.
+    /// </summary>
+    public Guid? OwnerId { get; set; }      
 }
 

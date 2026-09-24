@@ -92,12 +92,20 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
     }
 
     public async Task<AdvertisementInfoDto> CreateAdvertisementAsync(
+        Guid userId,
         CreateAdvertisementRequestDto request,
         CancellationToken cancellationToken = default)
     {
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
+
+            var genreExists = await context.Genres
+                .AnyAsync(g => g.Id == request.GenreId && !g.IsDeleted, cancellationToken);
+            if (!genreExists)
+                throw new ArgumentException("Выберите жанр из списка");
+
+            var seller = await GetOrCreateSellerAsync(userId, cancellationToken);
 
             var advertisement = new Models.Advertisement
             {
@@ -106,14 +114,14 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
                 Description = request.Description,
                 TitleBook= request.BookTitle,
                 Author = request.AuthorName,
-                GenreId = new Guid("2abe7c67-6991-4e0c-ba6c-33152842e5ce"), //временно
+                GenreId = request.GenreId,
                 IsNew = request.IsNew,
                 IsForever = request.IsForever,
                 IsPostamat = request.IsPostamat,
                 City = request.City,
                 Street = request.Street,
                 HouseNumber = request.HouseNumber,
-                SellerId = /*request.OwnerId,8*/  new Guid("446b6c74-9d7d-4500-86b6-92b02867b27c"),// временно
+                SellerId = seller.Id,
                 IsDeleted = false,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
@@ -139,6 +147,35 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
             logger.LogError(e, "Ошибка при создании объявления");
             throw;
         }
+    }
+
+    /// <summary>
+    /// Объявления привязаны к продавцу (Seller), а не напрямую к пользователю.
+    /// Если у пользователя ещё нет профиля продавца (не указал имя при регистрации) — создаём его.
+    /// </summary>
+    private async Task<Models.Seller> GetOrCreateSellerAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var seller = await context.Sellers
+            .FirstOrDefaultAsync(s => s.UserId == userId && !s.IsDeleted, cancellationToken);
+        if (seller != null)
+            return seller;
+
+        var user = await context.Users
+            .FirstOrDefaultAsync(u => u.Id == userId && !u.IsDeleted, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Пользователь не найден. Войдите в аккаунт заново");
+
+        seller = new Models.Seller
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            Name = user.Login,
+            Rating = 0.0,
+            Image = "default.jpg",
+            CreatedAt = DateTime.UtcNow,
+            IsDeleted = false
+        };
+        await context.Sellers.AddAsync(seller, cancellationToken);
+        return seller;
     }
 
     public async Task<AdvertisementInfoDto> UpdateAdvertisementAsync(

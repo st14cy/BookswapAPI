@@ -32,4 +32,16 @@ public interface IBookService
     /// Получение количества найденных книг
     /// </summary>
     Task<int> GetTotalCountAsync(string query);
+
+    /// <summary>
+    /// Подсказки для автозаполнения.
+    /// type = "title" — книги по названию (можно сузить по автору),
+    /// type = "author" — авторы по имени.
+    /// </summary>
+    Task<List<BookSuggestionDto>> SuggestAsync(
+        string query,
+        string type,
+        string? author = null,
+        int limit = 8,
+        CancellationToken cancellationToken = default);
 }
