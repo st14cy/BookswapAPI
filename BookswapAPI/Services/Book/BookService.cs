@@ -161,7 +161,8 @@ public class BookService : IBookService
                     Title = d.Title.Trim(),
                     Author = d.AuthorNames?.FirstOrDefault() ?? string.Empty,
                     Year = d.FirstPublishYear?.ToString(),
-                    CoverUrl = GetCoverUrl(d.CoverId, "S")
+                    // размер M: эта же ссылка сохраняется в объявление и показывается в карточках
+                    CoverUrl = GetCoverUrl(d.CoverId, "M")
                 })
                 .DistinctBy(s => (s.Title.ToLowerInvariant(), s.Author.ToLowerInvariant()))
                 .Take(limit)

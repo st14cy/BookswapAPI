@@ -20,6 +20,9 @@ public class CreateAdvertisementRequestDto
     public string Street { get; set; }
     public string HouseNumber { get; set; }
 
+    /// <summary>Ссылка на обложку из подсказок OpenLibrary (необязательно)</summary>
+    public string? CoverUrl { get; set; }
+
     /// <summary>
     /// Не используется: владелец объявления определяется по JWT-токену авторизованного пользователя.
     /// Оставлено для совместимости со старыми клиентами.

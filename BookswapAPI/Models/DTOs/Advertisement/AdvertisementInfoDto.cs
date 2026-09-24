@@ -20,4 +20,6 @@ public class AdvertisementInfoDto
     public DateTime CreatedAt { get; set; }
     /// <summary>false — объявление снято с публикации (в архиве)</summary>
     public bool IsActive { get; set; }
+    /// <summary>Ссылка на обложку книги, null — обложки нет</summary>
+    public string? CoverUrl { get; set; }
 }

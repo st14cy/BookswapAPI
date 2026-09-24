@@ -16,5 +16,7 @@ public class UpdateAdvertisementRequestDto
     public string? City { get; set; }
     public string? Street { get; set; }
     public string? HouseNumber { get; set; }
+    /// <summary>null — не менять, пустая строка — убрать обложку</summary>
+    public string? CoverUrl { get; set; }
     
 }

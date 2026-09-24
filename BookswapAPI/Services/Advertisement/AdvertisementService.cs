@@ -31,7 +31,8 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
                     HouseNumber = x.HouseNumber,
                     OwnerId = x.SellerId,
                     OwnerName = x.Seller.Name,
-                    IsActive = x.IsActive
+                    IsActive = x.IsActive,
+                    CoverUrl = x.CoverUrl
                 })
                 .ToListAsync(cancellationToken);
             return res;
@@ -73,6 +74,7 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
                     OwnerId = x.SellerId,
                     OwnerName = x.Seller != null ? x.Seller.Name : "Неизвестно",
                     IsActive = x.IsActive,
+                    CoverUrl = x.CoverUrl,
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -125,6 +127,7 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
                 HouseNumber = request.HouseNumber,
                 SellerId = seller.Id,
                 IsActive = true,           // новое объявление сразу опубликовано
+                CoverUrl = NormalizeCoverUrl(request.CoverUrl),
                 StartDate = DateTime.UtcNow,
                 IsDeleted = false,
                 CreatedAt = DateTime.UtcNow,
@@ -184,6 +187,21 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
         }
 
         return await GetAdvertisementByIdAsync(advertisementId, cancellationToken);
+    }
+
+    /// <summary>
+    /// Обложки берём только с OpenLibrary — произвольные ссылки не сохраняем.
+    /// </summary>
+    private static string? NormalizeCoverUrl(string? coverUrl)
+    {
+        if (string.IsNullOrWhiteSpace(coverUrl))
+            return null;
+
+        var url = coverUrl.Trim();
+        if (url.Length > 500 || !url.StartsWith("https://covers.openlibrary.org/", StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("Недопустимая ссылка на обложку");
+
+        return url;
     }
 
     /// <summary>
@@ -279,6 +297,10 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
 
             if (!string.IsNullOrWhiteSpace(request.HouseNumber))
                 advertisement.HouseNumber = request.HouseNumber;
+
+            // null — обложку не трогаем, пустая строка — убираем
+            if (request.CoverUrl != null)
+                advertisement.CoverUrl = NormalizeCoverUrl(request.CoverUrl);
 
             advertisement.UpdatedAt = DateTime.UtcNow;
             advertisement.UpdatedBy = userId;
@@ -386,6 +408,7 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
                     OwnerId = x.SellerId,
                     OwnerName = x.Seller.Name,
                     IsActive = x.IsActive,
+                    CoverUrl = x.CoverUrl,
                     CreatedAt = x.CreatedAt
                 })
                 .OrderByDescending(x => x.CreatedAt)
@@ -445,6 +468,7 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
                     OwnerId = x.SellerId,
                     OwnerName = x.Seller.Name,
                     IsActive = x.IsActive,
+                    CoverUrl = x.CoverUrl,
                     CreatedAt = x.CreatedAt
                 })
                 .OrderByDescending(x => x.CreatedAt)

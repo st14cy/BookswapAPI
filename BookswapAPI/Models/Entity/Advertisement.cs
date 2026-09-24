@@ -26,6 +26,10 @@ public class Advertisement : BaseEntity
     public DateTime EndDate { get; set; }
     
     public string Description { get; set; }
+
+    /// <summary>Ссылка на обложку книги (OpenLibrary), null — обложки нет</summary>
+    [MaxLength(500)]
+    public string? CoverUrl { get; set; }
     
     public string City { get; set; }
     public string HouseNumber { get; set; } // Вместо NumHome
