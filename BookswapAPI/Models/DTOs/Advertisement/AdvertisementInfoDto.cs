@@ -18,4 +18,6 @@ public class AdvertisementInfoDto
     public Guid OwnerId { get; set; }
     public string OwnerName { get; set; }
     public DateTime CreatedAt { get; set; }
+    /// <summary>false — объявление снято с публикации (в архиве)</summary>
+    public bool IsActive { get; set; }
 }

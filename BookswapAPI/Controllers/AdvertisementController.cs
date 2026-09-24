@@ -32,6 +32,86 @@ public class AdvertisementController : ControllerBase
         return Ok(await get);
     }
     
+    /// <summary>
+    /// Объявления текущего авторизованного пользователя (раздел «Мои объявления»)
+    /// </summary>
+    [Authorize]
+    [HttpGet("my")]
+    public async Task<IActionResult> GetMy(CancellationToken cancellationToken)
+    {
+        var userId = GetUserIdFromClaims();
+        if (userId == null)
+            return Unauthorized(new { message = "Необходимо войти в аккаунт" });
+
+        var posts = await _advertisementService.GetAdvertisementByUserAsync(userId.Value, cancellationToken);
+        return Ok(posts);
+    }
+
+    /// <summary>
+    /// Снять объявление с публикации — оно уходит в архив (IsActive = false)
+    /// </summary>
+    [Authorize]
+    [HttpPatch("{id:guid}/unpublish")]
+    public Task<IActionResult> Unpublish(Guid id, CancellationToken cancellationToken)
+        => SetActive(id, false, cancellationToken);
+
+    /// <summary>
+    /// Вернуть объявление из архива в публикацию (IsActive = true)
+    /// </summary>
+    [Authorize]
+    [HttpPatch("{id:guid}/publish")]
+    public Task<IActionResult> Publish(Guid id, CancellationToken cancellationToken)
+        => SetActive(id, true, cancellationToken);
+
+    private async Task<IActionResult> SetActive(Guid id, bool isActive, CancellationToken cancellationToken)
+    {
+        var userId = GetUserIdFromClaims();
+        if (userId == null)
+            return Unauthorized(new { message = "Необходимо войти в аккаунт" });
+
+        try
+        {
+            var post = await _advertisementService.SetActiveAsync(userId.Value, id, isActive, cancellationToken);
+            return Ok(post);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Удаление объявления (мягкое: IsDeleted = true). Только для владельца.
+    /// </summary>
+    [Authorize]
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        var userId = GetUserIdFromClaims();
+        if (userId == null)
+            return Unauthorized(new { message = "Необходимо войти в аккаунт" });
+
+        try
+        {
+            var deleted = await _advertisementService.DeleteAdvertisementAsync(userId.Value, id, cancellationToken);
+            if (!deleted)
+                return NotFound(new { message = "Объявление не найдено" });
+
+            return NoContent();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Объявления пользователя по его Id (User.Id)
+    /// </summary>
     [HttpGet("getByUser/{id:guid}")]
     public async Task<IActionResult> GetByUserId(Guid id, CancellationToken cancellationToken)
     {
@@ -69,6 +149,10 @@ public class AdvertisementController : ControllerBase
     }
     
     
+    /// <summary>
+    /// Редактирование объявления. Только для владельца.
+    /// </summary>
+    [Authorize]
     [HttpPut("posts/{id:guid}")]
     public async Task<IActionResult> UpdateAdvertisement(
         Guid id,
@@ -76,31 +160,30 @@ public class AdvertisementController : ControllerBase
         CancellationToken cancellationToken)
     {
         if (dto is null)
-            return BadRequest("Тело запроса пустое.");
+            return BadRequest(new { message = "Тело запроса пустое." });
 
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+        var userId = GetUserIdFromClaims();
+        if (userId == null)
+            return Unauthorized(new { message = "Необходимо войти в аккаунт" });
 
         try
         {
             var post = await _advertisementService
-                .UpdateAdvertisementAsync(id, dto, cancellationToken);
-
-            if (post is null)
-                return NotFound($"Объявление {id} не найдено.");
-
+                .UpdateAdvertisementAsync(userId.Value, id, dto, cancellationToken);
             return Ok(post);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { message = "Объявление не найдено" });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(new { message = ex.Message });
         }
-        catch (Exception ex)
-        {
-            return StatusCode(500, "Внутренняя ошибка сервера");
-        }
-        
-        
     }
 
     /// <summary>

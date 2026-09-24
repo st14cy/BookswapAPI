@@ -13,7 +13,7 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
             var res = await context.Advertisements
                 .Include(x => x.Seller)
                 .Include(x => x.Genre)
-                .Where(x => !x.IsDeleted)
+                .Where(x => !x.IsDeleted && x.IsActive) // в каталоге только опубликованные
                 .Select(x => new AdvertisementInfoDto
                 {
                     Id = x.Id,
@@ -30,7 +30,8 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
                     Street = x.Street,
                     HouseNumber = x.HouseNumber,
                     OwnerId = x.SellerId,
-                    OwnerName = x.Seller.Name
+                    OwnerName = x.Seller.Name,
+                    IsActive = x.IsActive
                 })
                 .ToListAsync(cancellationToken);
             return res;
@@ -71,6 +72,7 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
                     HouseNumber = x.HouseNumber,
                     OwnerId = x.SellerId,
                     OwnerName = x.Seller != null ? x.Seller.Name : "Неизвестно",
+                    IsActive = x.IsActive,
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -122,6 +124,8 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
                 Street = request.Street,
                 HouseNumber = request.HouseNumber,
                 SellerId = seller.Id,
+                IsActive = true,           // новое объявление сразу опубликовано
+                StartDate = DateTime.UtcNow,
                 IsDeleted = false,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
@@ -147,6 +151,39 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
             logger.LogError(e, "Ошибка при создании объявления");
             throw;
         }
+    }
+
+    public async Task<AdvertisementInfoDto> SetActiveAsync(
+        Guid userId,
+        Guid advertisementId,
+        bool isActive,
+        CancellationToken cancellationToken = default)
+    {
+        var advertisement = await context.Advertisements
+            .Include(x => x.Seller)
+            .FirstOrDefaultAsync(x => x.Id == advertisementId && !x.IsDeleted, cancellationToken)
+            ?? throw new KeyNotFoundException("Объявление не найдено");
+
+        // Снять с публикации / вернуть может только владелец
+        if (advertisement.Seller.UserId != userId)
+            throw new UnauthorizedAccessException("Это не ваше объявление");
+
+        if (advertisement.IsActive != isActive)
+        {
+            advertisement.IsActive = isActive;
+            advertisement.UpdatedAt = DateTime.UtcNow;
+            advertisement.UpdatedBy = userId;
+            if (isActive)
+                advertisement.StartDate = DateTime.UtcNow;
+            else
+                advertisement.EndDate = DateTime.UtcNow;
+
+            await context.SaveChangesAsync(cancellationToken);
+            logger.LogInformation("Объявление {AdId} {Action}", advertisementId,
+                isActive ? "опубликовано снова" : "снято с публикации");
+        }
+
+        return await GetAdvertisementByIdAsync(advertisementId, cancellationToken);
     }
 
     /// <summary>
@@ -179,6 +216,7 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
     }
 
     public async Task<AdvertisementInfoDto> UpdateAdvertisementAsync(
+        Guid userId,
         Guid id,
         UpdateAdvertisementRequestDto request,
         CancellationToken cancellationToken = default)
@@ -188,6 +226,7 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
             cancellationToken.ThrowIfCancellationRequested();
 
             var advertisement = await context.Advertisements
+                .Include(x => x.Seller)
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, cancellationToken);
 
             if (advertisement == null)
@@ -196,9 +235,23 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
                 throw new KeyNotFoundException($"Объявление с ID {id} не найдено");
             }
 
-         
+            // Редактировать может только владелец
+            if (advertisement.Seller.UserId != userId)
+                throw new UnauthorizedAccessException("Это не ваше объявление");
+
+            if (request.GenreId.HasValue && request.GenreId.Value != advertisement.GenreId)
+            {
+                var genreExists = await context.Genres
+                    .AnyAsync(g => g.Id == request.GenreId.Value && !g.IsDeleted, cancellationToken);
+                if (!genreExists)
+                    throw new ArgumentException("Выберите жанр из списка");
+            }
+
             if (!string.IsNullOrWhiteSpace(request.Title))
                 advertisement.Title = request.Title;
+
+            if (!string.IsNullOrWhiteSpace(request.BookTitle))
+                advertisement.TitleBook = request.BookTitle;
 
             if (!string.IsNullOrWhiteSpace(request.Description))
                 advertisement.Description = request.Description;
@@ -228,6 +281,7 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
                 advertisement.HouseNumber = request.HouseNumber;
 
             advertisement.UpdatedAt = DateTime.UtcNow;
+            advertisement.UpdatedBy = userId;
 
             await context.SaveChangesAsync(cancellationToken);
 
@@ -251,6 +305,7 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
     }
 
     public async Task<bool> DeleteAdvertisementAsync(
+        Guid userId,
         Guid id,
         CancellationToken cancellationToken = default)
     {
@@ -259,6 +314,7 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
             cancellationToken.ThrowIfCancellationRequested();
 
             var advertisement = await context.Advertisements
+                .Include(x => x.Seller)
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, cancellationToken);
 
             if (advertisement == null)
@@ -267,9 +323,14 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
                 return false;
             }
 
+            // Удалить может только владелец
+            if (advertisement.Seller.UserId != userId)
+                throw new UnauthorizedAccessException("Это не ваше объявление");
+
             // Soft delete - помечаем как удаленное
             advertisement.IsDeleted = true;
             advertisement.DeletedAt = DateTime.UtcNow;
+            advertisement.DeletedBy = userId;
             advertisement.UpdatedAt = DateTime.UtcNow;
 
             await context.SaveChangesAsync(cancellationToken);
@@ -305,13 +366,14 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
             var advertisements = await context.Advertisements
                 .Include(x => x.Seller)
                 .Include(x => x.Genre)
-                .Where(x => x.SellerId == userId && !x.IsDeleted)
+                // userId — это Id пользователя (User), объявления привязаны к его продавцу (Seller)
+                .Where(x => x.Seller.UserId == userId && !x.IsDeleted)
                 .Select(x => new AdvertisementInfoDto
                 {
                     Id = x.Id,
                     Title = x.Title,
                     Description = x.Description,
-                    BookTitle = x.Title,
+                    BookTitle = x.TitleBook,
                     AuthorName = x.Author,
                     GenreId = x.GenreId,
                     GenreName = x.Genre.Name,
@@ -323,6 +385,7 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
                     HouseNumber = x.HouseNumber,
                     OwnerId = x.SellerId,
                     OwnerName = x.Seller.Name,
+                    IsActive = x.IsActive,
                     CreatedAt = x.CreatedAt
                 })
                 .OrderByDescending(x => x.CreatedAt)
@@ -358,7 +421,7 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
             var advertisements = await context.Advertisements
                 .Include(x => x.Seller)
                 .Include(x => x.Genre)
-                .Where(x => !x.IsDeleted &&
+                .Where(x => !x.IsDeleted && x.IsActive &&
                     (x.Title.ToLower().Contains(searchTermLower) ||
                      x.Description.ToLower().Contains(searchTermLower) ||
                      x.Author.ToLower().Contains(searchTermLower) ||
@@ -381,6 +444,7 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
                     HouseNumber = x.HouseNumber,
                     OwnerId = x.SellerId,
                     OwnerName = x.Seller.Name,
+                    IsActive = x.IsActive,
                     CreatedAt = x.CreatedAt
                 })
                 .OrderByDescending(x => x.CreatedAt)
