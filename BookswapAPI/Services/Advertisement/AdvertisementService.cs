@@ -442,13 +442,14 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
             if (string.IsNullOrWhiteSpace(searchTerm))
                 return await GeAllAdvertisementAsync(cancellationToken);
             
-            var searchTermLower = searchTerm.ToLowerInvariant();
+            var searchTermLower = searchTerm.Trim().ToLower();
 
             var advertisements = await context.Advertisements
                 .Include(x => x.Seller)
                 .Include(x => x.Genre)
                 .Where(x => !x.IsDeleted && x.IsActive &&
-                    (x.Title.ToLower().Contains(searchTermLower) ||
+                    (x.TitleBook.ToLower().Contains(searchTermLower) ||
+                     x.Title.ToLower().Contains(searchTermLower) ||
                      x.Description.ToLower().Contains(searchTermLower) ||
                      x.Author.ToLower().Contains(searchTermLower) ||
                      x.Genre.Name.ToLower().Contains(searchTermLower) ||
@@ -458,7 +459,7 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
                     Id = x.Id,
                     Title = x.Title,
                     Description = x.Description,
-                    BookTitle = x.Title,
+                    BookTitle = x.TitleBook,
                     AuthorName = x.Author,
                     GenreId = x.GenreId,
                     GenreName = x.Genre.Name,

@@ -25,6 +25,13 @@ public class AdvertisementController : ControllerBase
         return Ok(await advertisement);
     }
 
+    [HttpGet("search")]
+    public async Task<IActionResult> Search([FromQuery] string? query, CancellationToken cancellationToken)
+    {
+        var advertisements = await _advertisementService.SearchAdvertisementAsync(query ?? string.Empty, cancellationToken);
+        return Ok(advertisements);
+    }
+
     [HttpGet("getById/{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
