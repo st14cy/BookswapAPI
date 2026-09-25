@@ -9,7 +9,9 @@ public static class DbSeeder
 {
     public static async Task SeedAsync(AppDbContext db)
     {
-        await db.Database.MigrateAsync();
+        // Таблицы создаются прямо по сущностям (без миграций).
+        // После изменения сущностей: удалить БД и запустить API — она создастся заново.
+        await db.Database.EnsureCreatedAsync();
 
         if (await db.Users.AnyAsync()) return;
 

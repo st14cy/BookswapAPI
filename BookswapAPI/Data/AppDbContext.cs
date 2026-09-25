@@ -12,6 +12,10 @@ public class AppDbContext : DbContext
     public DbSet<Seller> Sellers => Set<Seller>();
     public DbSet<Advertisement> Advertisements => Set<Advertisement>();
     public DbSet<FavoriteAdvertisement> FavoriteAdvertisements => Set<FavoriteAdvertisement>();
+    public DbSet<CartItem> CartItems => Set<CartItem>();
+    public DbSet<Order> Orders => Set<Order>();
+    public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -75,6 +79,62 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.AdvertisementId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
-        
+
+        modelBuilder.Entity<CartItem>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => new { x.UserId, x.AdvertisementId }).IsUnique();
+            entity.HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.Advertisement)
+                .WithMany()
+                .HasForeignKey(x => x.AdvertisementId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Order>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => x.UserId);
+            entity.HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasMany(x => x.Items)
+                .WithOne(x => x.Order)
+                .HasForeignKey(x => x.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<OrderItem>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => x.AdvertisementId);
+            entity.HasOne(x => x.Advertisement)
+                .WithMany()
+                .HasForeignKey(x => x.AdvertisementId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => new { x.UserId, x.IsRead });
+            entity.Property(x => x.Message).HasMaxLength(500).IsRequired();
+            entity.HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<Advertisement>()
+                .WithMany()
+                .HasForeignKey(x => x.AdvertisementId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne<Order>()
+                .WithMany()
+                .HasForeignKey(x => x.OrderId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
     }
 }

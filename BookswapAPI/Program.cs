@@ -6,6 +6,8 @@ using BookswapAPI.Services.Book;
 using BookswapAPI.Services.Genres;
 using BookswapAPI.Services.Favorites;
 using BookswapAPI.Services.Sellers;
+using BookswapAPI.Services.Carts;
+using BookswapAPI.Services.Notifications;
 using BookswapAPI.Services.JWT;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -32,6 +34,8 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IGenreService, GenreService>();
 builder.Services.AddScoped<IFavoriteService, FavoriteService>();
 builder.Services.AddScoped<ISellerService, SellerService>();
+builder.Services.AddScoped<ICartService, CartService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 // --- JWT-аутентификация ---
 var jwtSecret = builder.Configuration["Jwt:Secret"]
