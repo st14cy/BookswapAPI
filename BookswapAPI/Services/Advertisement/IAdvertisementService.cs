@@ -20,6 +20,11 @@ public interface IAdvertisementService
     /// <returns>false — объявление не найдено</returns>
     /// <exception cref="UnauthorizedAccessException">объявление принадлежит другому пользователю</exception>
     Task<bool> DeleteAdvertisementAsync(Guid userId, Guid id,  CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Мягкое удаление любого объявления администратором.
+    /// </summary>
+    /// <returns>false — объявление не найдено</returns>
+    Task<bool> AdminDeleteAdvertisementAsync(Guid adminId, Guid id, CancellationToken cancellationToken = default);
     /// <param name="userId">Id пользователя (User), а не продавца</param>
     Task<IEnumerable<AdvertisementInfoDto>> GetAdvertisementByUserAsync(Guid userId,  CancellationToken cancellationToken = default);
     /// <summary>

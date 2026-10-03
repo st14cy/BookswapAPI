@@ -117,6 +117,27 @@ public class AdvertisementController : ControllerBase
     }
 
     /// <summary>
+    /// Удаление любого объявления администратором (мягкое: IsDeleted = true).
+    /// </summary>
+    [Authorize]
+    [HttpDelete("admin/{id:guid}")]
+    public async Task<IActionResult> AdminDelete(Guid id, CancellationToken cancellationToken)
+    {
+        var userId = GetUserIdFromClaims();
+        if (userId == null)
+            return Unauthorized(new { message = "Необходимо войти в аккаунт" });
+
+        if (!IsAdmin())
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = "Действие доступно только администратору" });
+
+        var deleted = await _advertisementService.AdminDeleteAdvertisementAsync(userId.Value, id, cancellationToken);
+        if (!deleted)
+            return NotFound(new { message = "Объявление не найдено" });
+
+        return NoContent();
+    }
+
+    /// <summary>
     /// Объявления пользователя по его Id (User.Id)
     /// </summary>
     [HttpGet("getByUser/{id:guid}")]
@@ -196,6 +217,12 @@ public class AdvertisementController : ControllerBase
     /// <summary>
     /// Id пользователя из JWT (так же, как в AuthController)
     /// </summary>
+    private bool IsAdmin()
+    {
+        return User.IsInRole("Admin")
+               || User.Claims.Any(c => (c.Type == ClaimTypes.Role || c.Type == "role") && c.Value == "Admin");
+    }
+
     private Guid? GetUserIdFromClaims()
     {
         var value = User.FindFirst(ClaimTypes.NameIdentifier)?.Value

@@ -7,13 +7,45 @@ namespace BookswapAPI.Data;
 
 public static class DbSeeder
 {
+    private const string AdminLogin = "admin";
+    private const string AdminPassword = "admin";
+
+    private static async Task EnsureAdminAsync(AppDbContext db)
+    {
+        var admin = await db.Users.FirstOrDefaultAsync(u => u.Login == AdminLogin);
+        if (admin == null)
+        {
+            db.Users.Add(new User
+            {
+                Id = Guid.NewGuid(),
+                Login = AdminLogin,
+                Email = "admin@example.com",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(AdminPassword),
+                Role = Roles.Admin,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+        else
+        {
+            admin.Role = Roles.Admin;
+            admin.IsDeleted = false;
+            if (!BCrypt.Net.BCrypt.Verify(AdminPassword, admin.PasswordHash))
+                admin.PasswordHash = BCrypt.Net.BCrypt.HashPassword(AdminPassword);
+        }
+        await db.SaveChangesAsync();
+    }
+
     public static async Task SeedAsync(AppDbContext db)
     {
         // Таблицы создаются прямо по сущностям (без миграций).
         // После изменения сущностей: удалить БД и запустить API — она создастся заново.
         await db.Database.EnsureCreatedAsync();
 
-        if (await db.Users.AnyAsync()) return;
+        if (await db.Users.AnyAsync())
+        {
+            await EnsureAdminAsync(db);
+            return;
+        }
 
         var now = DateTime.UtcNow;
 
@@ -48,7 +80,7 @@ public static class DbSeeder
                 Id = Guid.NewGuid(),
                 Login = "admin",
                 Email = "admin@example.com",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin123!"),
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin"),
                 Role = Roles.Admin,
                 CreatedAt = now
             },

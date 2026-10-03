@@ -328,6 +328,30 @@ public class AdvertisementService(AppDbContext context, ILogger<AdvertisementSer
         }
     }
 
+    public async Task<bool> AdminDeleteAdvertisementAsync(
+        Guid adminId,
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var advertisement = await context.Advertisements
+            .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, cancellationToken);
+
+        if (advertisement == null)
+            return false;
+
+        var now = DateTime.UtcNow;
+        advertisement.IsDeleted = true;
+        advertisement.IsActive = false;
+        advertisement.DeletedAt = now;
+        advertisement.DeletedBy = adminId;
+        advertisement.UpdatedAt = now;
+        advertisement.UpdatedBy = adminId;
+
+        await context.SaveChangesAsync(cancellationToken);
+        logger.LogInformation("Объявление {AdId} удалено администратором {AdminId}", id, adminId);
+        return true;
+    }
+
     public async Task<bool> DeleteAdvertisementAsync(
         Guid userId,
         Guid id,
